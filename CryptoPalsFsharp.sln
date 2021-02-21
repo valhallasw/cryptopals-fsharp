@@ -1,0 +1,16 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "CryptoPalsFsharp", "CryptoPalsFsharp\CryptoPalsFsharp.fsproj", "{C128CCD1-AC02-4567-BCE2-D1E914D5C7AD}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{C128CCD1-AC02-4567-BCE2-D1E914D5C7AD}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C128CCD1-AC02-4567-BCE2-D1E914D5C7AD}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C128CCD1-AC02-4567-BCE2-D1E914D5C7AD}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C128CCD1-AC02-4567-BCE2-D1E914D5C7AD}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+EndGlobal
