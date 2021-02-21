@@ -1,0 +1,26 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <OutputType>Library</OutputType>
+        <TargetFramework>netcoreapp3.1</TargetFramework>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <Compile Include="cryptopals\bytearray.fs" />
+        <Compile Include="cryptopals\bits.fs" />
+        <Compile Include="cryptopals\base64.fs" />
+        <Compile Include="cryptopals\hex.fs" />
+        <Compile Include="sets\set1.fs" />
+        <Content Include="readme.adoc" />
+        <Compile Include="tests\base64fixture.fs" />
+        <Compile Include="tests\hexfixture.fs" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <PackageReference Include="FsCheck.NUnit" Version="3.0.0-alpha5" />
+      <PackageReference Include="FsUnit" Version="4.0.4" />
+      <PackageReference Include="Microsoft.NET.Test.Sdk" Version="16.8.3" />
+      <PackageReference Include="NUnit" Version="3.13.0" />
+      <PackageReference Include="NUnit3TestAdapter" Version="3.17.0" />
+    </ItemGroup>
+</Project>
