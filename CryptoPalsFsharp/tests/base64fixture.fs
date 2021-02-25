@@ -1,15 +1,16 @@
 module Base64fixture
 
 open NUnit.Framework
+open FsUnit
 
 [<Test>]
 let SingleByte () =
-    Assert.AreEqual("/w==", [0xff] |> Base64.byteToBase64)
+    [0xff] |> Base64.byteToBase64 |> should equal "/w=="
     
 [<Test>]
 let TwoBytes () =
-    Assert.AreEqual("qrs=", [0xaa; 0xbb] |> Base64.byteToBase64)
+    [0xaa; 0xbb] |> Base64.byteToBase64 |> should equal "qrs="
     
 [<Test>]
 let ThreeBytes () =
-    Assert.AreEqual("qrvM", [0xaa; 0xbb; 0xcc] |> Base64.byteToBase64)
+    [0xaa; 0xbb; 0xcc] |> Base64.byteToBase64 |> should equal "qrvM"
