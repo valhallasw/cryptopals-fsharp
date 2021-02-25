@@ -21,9 +21,8 @@ let challenge2 () =
     should equal "746865206b696420646f6e277420706c6179"
     
 [<Test>]
+[<Explicit>]
 let challenge3 () =
     let hex = "1b37373331363f78151b7f2b783431333d78397828372d363c78373e783a393b3736" |> Hex.hexToByte
     let key = 0x01
-    
-    
     Assert.Fail()
