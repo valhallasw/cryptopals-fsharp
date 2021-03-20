@@ -1,5 +1,8 @@
 module set1
 
+open System.IO
+open System.Reflection
+open System.Resources
 open NUnit.Framework
 open FsUnit
 
@@ -19,10 +22,51 @@ let challenge2 () =
     List.map((<||) (^^^))|>
     Hex.byteToHex |>
     should equal "746865206b696420646f6e277420706c6179"
+
+
+let decodeXor = fun data key -> data |> (List.map (fun byte -> (^^^) byte key))
+
+let crackXorOptions keys bytes =
+    keys |> List.map (decodeXor bytes) |>
+            List.map (Ascii.byteToChars)
+
+let isprintable v =
+    let charval = v |> Ascii.charToVal
+
+    (charval >= ('A' |> Ascii.charToVal) && charval <= ('Z' |> Ascii.charToVal)) ||
+    (charval >= ('a' |> Ascii.charToVal) && charval <= ('z' |> Ascii.charToVal)) ||
+    (charval = (' ' |> Ascii.charToVal))
+        
+let crackXor bytes =
+    let keys = [0x00..0xff] |> List.map int
     
+    let keyIndex, score =
+       crackXorOptions keys bytes |>
+       List.map (List.ofSeq) |>
+       List.map (List.map (fun c -> if isprintable c then 1 else 0)) |>
+       List.map (List.sum) |>
+       List.indexed |>
+       List.maxBy snd
+
+    let key = keys.[keyIndex]
+    
+    (score, key, key |> decodeXor bytes |> Ascii.byteToChars)
+
 [<Test>]
-[<Explicit>]
 let challenge3 () =
     let hex = "1b37373331363f78151b7f2b783431333d78397828372d363c78373e783a393b3736" |> Hex.hexToByte
-    let key = 0x01
-    Assert.Fail()
+    
+    let score, key, decrypted = crackXor hex
+    decrypted |> should equal "Cooking MC's like a pound of bacon"
+
+[<Test>]
+let challenge4 () =
+    let lines = File.readChallengeData "4.txt" |> List.map Hex.hexToByte 
+        
+    let score x = List.ofSeq x |> List.map (fun c -> if isprintable c then 1 else 0) |> List.sum     
+    
+    let keys = [0x00..0xff] |> List.map int
+    
+    lines |> List.collect (crackXorOptions keys)|>
+             List.maxBy (score) |>
+             should equal "Now that the party is jumping?"
