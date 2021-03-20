@@ -7,14 +7,21 @@
     </PropertyGroup>
 
     <ItemGroup>
+        <EmbeddedResource Include="**\*.txt" />
+    </ItemGroup>
+    
+    <ItemGroup>
         <Compile Include="cryptopals\bytearray.fs" />
         <Compile Include="cryptopals\bits.fs" />
         <Compile Include="cryptopals\base64.fs" />
         <Compile Include="cryptopals\hex.fs" />
+        <Compile Include="cryptopals\ascii.fs" />
+        <Compile Include="cryptopals\file.fs" />
         <Compile Include="sets\set1.fs" />
-        <Content Include="readme.adoc" />
         <Compile Include="tests\base64fixture.fs" />
         <Compile Include="tests\hexfixture.fs" />
+        <Compile Include="tests\asciifixture.fs" />
+        <Compile Include="tests\filefixture.fs" />
     </ItemGroup>
 
     <ItemGroup>
