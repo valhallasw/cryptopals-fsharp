@@ -5,6 +5,10 @@ let private base64table = Array.ofSeq "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmno
 
 let private base64Lookup i = Array.item i base64table
 
+let swap (x, y) = (y, x)
+let private invertedLookup = base64table |> Array.indexed |> Array.map swap |> Map
+
+
 let private padUntilLengthMultiple length value list =
     let i = length - (List.length list) % length
     if (i = length) then list
@@ -23,3 +27,9 @@ let byteToBase64 (x: bytearray) =
     padBase64 |>
     List.map string |>
     String.concat ""
+
+let private charToBits (x: char) =
+    x |> invertedLookup.TryFind |> Option.map Bits.binarize6 |> Option.defaultValue list.Empty
+
+let base64ToByte (x: string) =
+    x |> Seq.filter invertedLookup.ContainsKey |> Seq.collect charToBits |> Seq.chunkBySize 8 |> Seq.map Bits.unbinarize

@@ -6,6 +6,7 @@ let rec private binarizer max n =
     else ([ 0 ] @ (binarizer (max / 2) (n)))
 
 let binarize8 = binarizer 128
+let binarize6 = binarizer 32
 
 let unbinarize: seq<int> -> int = Seq.fold (fun c v -> 2 * c + v) 0 //or... ((*) 2 >> (+)) 0
 

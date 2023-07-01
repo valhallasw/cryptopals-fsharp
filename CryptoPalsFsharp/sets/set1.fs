@@ -10,10 +10,11 @@ let xor = (^^^)
 
 [<Test>]
 let challenge1 () = // Convert hex to base64
-    "49276d206b696c6c696e6720796f757220627261696e206c696b65206120706f69736f6e6f7573206d757368726f6f6d" |>
-        Hex.hexToByte |>
-        Base64.byteToBase64 |>
-        should equal "SSdtIGtpbGxpbmcgeW91ciBicmFpbiBsaWtlIGEgcG9pc29ub3VzIG11c2hyb29t"
+    let hex = "49276d206b696c6c696e6720796f757220627261696e206c696b65206120706f69736f6e6f7573206d757368726f6f6d"
+    let b64 = "SSdtIGtpbGxpbmcgeW91ciBicmFpbiBsaWtlIGEgcG9pc29ub3VzIG11c2hyb29t"
+    
+    hex |> Hex.hexToByte |> Base64.byteToBase64 |> should equal b64
+    b64 |> Base64.base64ToByte |> Hex.byteToHex |> should equal hex
 
 [<Test>]
 let challenge2 () = // Fixed XOR
