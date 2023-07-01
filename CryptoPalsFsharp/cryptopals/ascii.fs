@@ -8,7 +8,8 @@ let private invertedLookup = asciitable |> Array.indexed |> Array.map swap |> Ma
 
 let valToChar i = Array.item i asciitable
 let charToVal i = invertedLookup.Item i
-    
-let charToByte (str: string):bytearray = List.ofSeq str |> List.map charToVal 
 
-let byteToChars (data: bytearray): string = data |> List.map valToChar |> List.map string |> String.concat ""
+
+let charToByte (str: string):bytearray = Seq.map charToVal str 
+
+let byteToChars (data: bytearray): string = data |> Seq.map valToChar |> Seq.map string |> String.concat ""

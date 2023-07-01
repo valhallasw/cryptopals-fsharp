@@ -9,7 +9,7 @@ let private valToNibble i = Array.item i hex
 let private nibbleToVal i = invertedLookup.Item i
     
 let hexToByte (hex: string):bytearray = 
-    List.ofSeq hex |> List.chunkBySize 2 |> List.map (List.map nibbleToVal) |> List.map (List.fold ((*) 16 >> (+)) 0)
+    hex |> Seq.chunkBySize 2 |> Seq.map (Seq.map nibbleToVal) |> Seq.map (Seq.fold ((*) 16 >> (+)) 0)
 
 let byteToHex (data: seq<int>): string =
     data |> Seq.map (fun i -> [i / 16; i % 16]) |> Seq.collect (List.map valToNibble) |> Seq.map string |> String.concat ""

@@ -15,6 +15,7 @@ let private padBase64 = padUntilLengthMultiple 4 '='
 
 let byteToBase64 (x: bytearray) =
     Bits.bytesToBits x |>
+    Seq.toList |> 
     List.chunkBySize 6 |>
     List.map padChunkLeft |>
     List.map Bits.unbinarize |>

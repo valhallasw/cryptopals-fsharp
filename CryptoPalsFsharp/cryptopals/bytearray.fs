@@ -1,3 +1,3 @@
 namespace cryptopals
 
-type bytearray = list<int>
+type bytearray = seq<int>
