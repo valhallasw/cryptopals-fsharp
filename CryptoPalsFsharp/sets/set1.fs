@@ -1,10 +1,12 @@
 module set1
 
+open System
 open System.IO
 open System.Reflection
 open System.Resources
 open NUnit.Framework
 open FsUnit
+open cryptopals
 
 let xor = (^^^)
 
@@ -27,29 +29,25 @@ let challenge2 () = // Fixed XOR
     should equal "746865206b696420646f6e277420706c6179"
 
 
-let decodeXor = fun data key -> data |> (List.map (fun byte -> byte ^^^ key))
+let decodeXor = fun data key -> data |> (Seq.map (fun byte -> byte ^^^ key))
 
 let crackXorOptions keys bytes =
-    keys |> List.map (decodeXor bytes) |>
-            List.map (Ascii.byteToChars)
+    keys |> Seq.map (decodeXor bytes) |>
+            Seq.map (Ascii.byteToChars)
 
-let isprintable v =
-    let charval = v |> Ascii.charToVal
 
-    (charval >= ('A' |> Ascii.charToVal) && charval <= ('Z' |> Ascii.charToVal)) ||
-    (charval >= ('a' |> Ascii.charToVal) && charval <= ('z' |> Ascii.charToVal)) ||
-    (charval = (' ' |> Ascii.charToVal))
-        
+[<Test>]
+let testCountPrintable () =
+    Ascii.countprintable "abcd\x00\x01\x02" |> should equal 4 
+
 let crackXor bytes =
     let keys = [0x00..0xff] |> List.map int
     
     let keyIndex, score =
        crackXorOptions keys bytes |>
-       List.map (List.ofSeq) |>
-       List.map (List.map (fun c -> if isprintable c then 1 else 0)) |>
-       List.map (List.sum) |>
-       List.indexed |>
-       List.maxBy snd
+       Seq.map Ascii.countprintable |>
+       Seq.indexed |>
+       Seq.maxBy snd
 
     let key = keys.[keyIndex]
     
@@ -66,13 +64,13 @@ let challenge3 () = // Single-byte XOR cipher
 let challenge4 () = // Detect single-character XOR
     let lines = File.readChallengeData "4.txt" |> List.map Hex.hexToByte 
         
-    let score x = List.ofSeq x |> List.map (fun c -> if isprintable c then 1 else 0) |> List.sum     
+    let score x = List.ofSeq x |> List.map (fun c -> if Ascii.isprintable c then 1 else 0) |> List.sum     
     
     let keys = [0x00..0xff] |> List.map int
     
-    lines |> List.collect (crackXorOptions keys) |>
-             List.maxBy (score) |>
-             should equal "Now that the party is jumping?"
+    lines |> Seq.collect (crackXorOptions keys) |>
+             Seq.maxBy (score) |>
+             should equal "Now that the party is jumping\n"
 
 let repeatkey_list (key: list<'T>) = Seq.initInfinite (fun index -> key[index % key.Length])
 let repeatkey (key: seq<'T>) = key |> List.ofSeq |> repeatkey_list

@@ -9,6 +9,13 @@ let private invertedLookup = asciitable |> Array.indexed |> Array.map swap |> Ma
 let valToChar i = Array.item i asciitable
 let charToVal i = invertedLookup.Item i
 
+let isprintable v =
+    let charval = int v
+    (charval >= (int 'A') && charval <= (int 'Z')) ||
+    (charval >= (int 'a') && charval <= (int 'z')) ||
+    (charval = (int ' '))
+
+let countprintable: (string -> int) = Seq.where isprintable >> Seq.length
 
 let charToByte (str: string):bytearray = Seq.map charToVal str 
 
