@@ -4,6 +4,7 @@ open System
 open System.IO
 open System.Reflection
 open System.Resources
+open System.Security.Cryptography
 open NUnit.Framework
 open FsUnit
 open cryptopals
@@ -169,3 +170,28 @@ let challenge6 () = // Break repeating-key XOR
     cracked_key |> Hex.byteToHex |> should equal "5465726d696e61746f7220583a204272696e6720746865206e6f697365"
     decoded[0..32] |> should equal "I'm back and I'm ringin' the bell"
 
+
+let decryptEcb paddingmode key enc =
+    use aes = Aes.Create()
+    aes.Mode <- CipherMode.ECB
+    aes.Key <- (key |> Seq.map byte |> Seq.toArray)
+    aes.Padding <- paddingmode
+    
+    let decryptor = aes.CreateDecryptor()
+    use msDecrypt = new MemoryStream(enc |> Seq.map byte |> Seq.toArray, false)
+    use csDecrypt = new CryptoStream(msDecrypt, decryptor, CryptoStreamMode.Read)
+    use srDecrypt = new StreamReader(csDecrypt)
+    
+    srDecrypt.ReadToEnd()
+    
+
+// AES in ECB mode
+[<Test>]
+let challenge7 () =
+    let enc = File.readChallengeData "7.txt" |> String.concat "" |> Base64.base64ToByte
+    let key = "YELLOW SUBMARINE" |> Ascii.charToByte
+    
+    let decrypted = decryptEcb PaddingMode.PKCS7 key enc
+    
+    decrypted[0..32] |> should equal "I'm back and I'm ringin' the bell"
+    
