@@ -13,3 +13,6 @@ let hexToByte (hex: string):bytearray =
 
 let byteToHex (data: seq<int>): string =
     data |> Seq.map (fun i -> [i / 16; i % 16]) |> Seq.collect (List.map valToNibble) |> Seq.map string |> String.concat ""
+   
+   
+    

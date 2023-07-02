@@ -1,9 +1,5 @@
 module set1
 
-open System
-open System.IO
-open System.Reflection
-open System.Resources
 open System.Security.Cryptography
 open NUnit.Framework
 open FsUnit
@@ -24,8 +20,7 @@ let challenge2 () = // Fixed XOR
     let hex1 = "1c0111001f010100061a024b53535009181c" |> Hex.hexToByte
     let hex2 = "686974207468652062756c6c277320657965" |> Hex.hexToByte
     
-    Seq.zip hex1 hex2 |>
-    Seq.map((<||) xor) |>
+    Seq.pairxor hex1 hex2 |>
     Hex.byteToHex |>
     should equal "746865206b696420646f6e277420706c6179"
 
@@ -171,61 +166,48 @@ let challenge6 () = // Break repeating-key XOR
     decoded[0..32] |> should equal "I'm back and I'm ringin' the bell"
 
 
-let decryptEcb paddingmode key enc =
-    use aes = Aes.Create()
-    aes.Mode <- CipherMode.ECB
-    aes.Key <- (key |> Seq.map byte |> Seq.toArray)
-    aes.Padding <- paddingmode
-    
-    let decryptor = aes.CreateDecryptor()
-    use msDecrypt = new MemoryStream(enc |> Seq.map byte |> Seq.toArray, false)
-    use csDecrypt = new CryptoStream(msDecrypt, decryptor, CryptoStreamMode.Read)
-    use srDecrypt = new StreamReader(csDecrypt)
-    
-    srDecrypt.ReadToEnd()
-    
-
 // AES in ECB mode
 [<Test>]
 let challenge7 () =
     let enc = File.readChallengeData "7.txt" |> String.concat "" |> Base64.base64ToByte
     let key = "YELLOW SUBMARINE" |> Ascii.charToByte
     
-    let decrypted = decryptEcb PaddingMode.PKCS7 key enc
+    let decrypted = Aes.decryptEcb PaddingMode.PKCS7 key enc
     
     decrypted[0..32] |> should equal "I'm back and I'm ringin' the bell"
     
-
-let splitBlocks size input =
-    input |> Seq.indexed |> Seq.groupBy (fst >> fun x -> x / size) |> Seq.map (snd >> Seq.map snd)
+    let decrypted_own = Aes.decryptEcbPkcs7 key enc
+    decrypted_own[0..32] |> should equal "I'm back and I'm ringin' the bell"
+    
+    let encrypted_own = Aes.encryptEcbPkcs7 key decrypted_own
+    encrypted_own |> should equal enc
 
 [<Test>]
 let testSplitBlocks () =
     let input = {100 .. 1 .. 163}
     input |> Seq.length |> should equal 64
     
-    input |> splitBlocks 16 |> should equal [{100 .. 1 .. 115}; {116 .. 1 .. 131}; {132 .. 1 .. 147}; {148 .. 1 .. 163}]
-    input |> splitBlocks 15 |> should equal [{100 .. 1 .. 114}; {115 .. 1 .. 129}; {130 .. 1 .. 144}; {145 .. 1 .. 159}; {160 .. 1 .. 163}]
+    input |> Seq.splitBlocks 16 |> should equal [{100 .. 1 .. 115}; {116 .. 1 .. 131}; {132 .. 1 .. 147}; {148 .. 1 .. 163}]
+    input |> Seq.splitBlocks 15 |> should equal [{100 .. 1 .. 114}; {115 .. 1 .. 129}; {130 .. 1 .. 144}; {145 .. 1 .. 159}; {160 .. 1 .. 163}]
 
-let countDuplicates input =
-    input |> Seq.groupBy id |> Seq.map (snd >> Seq.length >> fun x -> x - 1) |> Seq.sum
+
 
 [<Test>]
 let testCountDuplicates () =
-    [0; 1; 2; 3; 4] |> countDuplicates |> should equal 0
-    [0; 0; 1; 2; 3; 4] |> countDuplicates |> should equal 1
-    [0; 0; 0; 1; 2; 3; 4] |> countDuplicates |> should equal 2
-    [0; 0; 1; 1; 2; 3; 4] |> countDuplicates |> should equal 2
+    [0; 1; 2; 3; 4] |> Seq.countDuplicates |> should equal 0
+    [0; 0; 1; 2; 3; 4] |> Seq.countDuplicates |> should equal 1
+    [0; 0; 0; 1; 2; 3; 4] |> Seq.countDuplicates |> should equal 2
+    [0; 0; 1; 1; 2; 3; 4] |> Seq.countDuplicates |> should equal 2
     
-    ["alpha"; "alpha"; "beta"] |> countDuplicates |> should equal 1
+    ["alpha"; "alpha"; "beta"] |> Seq.countDuplicates |> should equal 1
     
     // lists, arrays are compared by value
-    [[0; 0]; [0; 0]; [0; 1]] |> countDuplicates |> should equal 1
-    [ [| 0; 0 |]; [| 0; 0 |]; [| 0; 1 |] ] |> countDuplicates |> should equal 1
+    [[0; 0]; [0; 0]; [0; 1]] |> Seq.countDuplicates |> should equal 1
+    [ [| 0; 0 |]; [| 0; 0 |]; [| 0; 1 |] ] |> Seq.countDuplicates |> should equal 1
     
     // sequences are compared by ref
-    [{0 .. 1 .. 2}; {0 .. 1 .. 2}] |> countDuplicates |> should equal 0
-    [{0 .. 1 .. 2}; {0 .. 1 .. 2}] |> Seq.map Seq.toArray |> countDuplicates |> should equal 1
+    [{0 .. 1 .. 2}; {0 .. 1 .. 2}] |> Seq.countDuplicates |> should equal 0
+    [{0 .. 1 .. 2}; {0 .. 1 .. 2}] |> Seq.map Seq.toArray |> Seq.countDuplicates |> should equal 1
 
 let tupFn fn input = (input, fn input)
 
@@ -234,7 +216,7 @@ let tupFn fn input = (input, fn input)
 let challenge8 () =
     let enc = File.readChallengeData "8.txt" |> Seq.map Hex.hexToByte
 
-    let suspicious = enc |> Seq.map (tupFn (splitBlocks 16 >> Seq.map Seq.toArray >> countDuplicates)) |> Seq.sortBy snd |> Seq.rev |> Seq.take 5
+    let suspicious = enc |> Seq.map (tupFn (Seq.splitBlocks 16 >> Seq.map Seq.toArray >> Seq.countDuplicates)) |> Seq.sortBy snd |> Seq.rev |> Seq.take 5
     
     suspicious |> Seq.map (fun (v, c) -> $"{c}: {v |> Hex.byteToHex}") |> String.concat "\n" |> printfn "%s"
     
