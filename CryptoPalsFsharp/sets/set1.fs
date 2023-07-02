@@ -195,3 +195,50 @@ let challenge7 () =
     
     decrypted[0..32] |> should equal "I'm back and I'm ringin' the bell"
     
+
+let splitBlocks size input =
+    input |> Seq.indexed |> Seq.groupBy (fst >> fun x -> x / size) |> Seq.map (snd >> Seq.map snd)
+
+[<Test>]
+let testSplitBlocks () =
+    let input = {100 .. 1 .. 163}
+    input |> Seq.length |> should equal 64
+    
+    input |> splitBlocks 16 |> should equal [{100 .. 1 .. 115}; {116 .. 1 .. 131}; {132 .. 1 .. 147}; {148 .. 1 .. 163}]
+    input |> splitBlocks 15 |> should equal [{100 .. 1 .. 114}; {115 .. 1 .. 129}; {130 .. 1 .. 144}; {145 .. 1 .. 159}; {160 .. 1 .. 163}]
+
+let countDuplicates input =
+    input |> Seq.groupBy id |> Seq.map (snd >> Seq.length >> fun x -> x - 1) |> Seq.sum
+
+[<Test>]
+let testCountDuplicates () =
+    [0; 1; 2; 3; 4] |> countDuplicates |> should equal 0
+    [0; 0; 1; 2; 3; 4] |> countDuplicates |> should equal 1
+    [0; 0; 0; 1; 2; 3; 4] |> countDuplicates |> should equal 2
+    [0; 0; 1; 1; 2; 3; 4] |> countDuplicates |> should equal 2
+    
+    ["alpha"; "alpha"; "beta"] |> countDuplicates |> should equal 1
+    
+    // lists, arrays are compared by value
+    [[0; 0]; [0; 0]; [0; 1]] |> countDuplicates |> should equal 1
+    [ [| 0; 0 |]; [| 0; 0 |]; [| 0; 1 |] ] |> countDuplicates |> should equal 1
+    
+    // sequences are compared by ref
+    [{0 .. 1 .. 2}; {0 .. 1 .. 2}] |> countDuplicates |> should equal 0
+    [{0 .. 1 .. 2}; {0 .. 1 .. 2}] |> Seq.map Seq.toArray |> countDuplicates |> should equal 1
+
+let tupFn fn input = (input, fn input)
+
+// Detect AES in ECB mode
+[<Test>]
+let challenge8 () =
+    let enc = File.readChallengeData "8.txt" |> Seq.map Hex.hexToByte
+
+    let suspicious = enc |> Seq.map (tupFn (splitBlocks 16 >> Seq.map Seq.toArray >> countDuplicates)) |> Seq.sortBy snd |> Seq.rev |> Seq.take 5
+    
+    suspicious |> Seq.map (fun (v, c) -> $"{c}: {v |> Hex.byteToHex}") |> String.concat "\n" |> printfn "%s"
+    
+    let very_suspicious = suspicious |> Seq.head
+    
+    very_suspicious |> snd |> should equal 3  // 3 repeated blocks
+    very_suspicious |> fst |> Hex.byteToHex |> fun x -> x[0..31] |> should equal "d880619740a8a19b7840a8a31c810a3d"
