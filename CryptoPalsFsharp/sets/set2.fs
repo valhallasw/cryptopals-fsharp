@@ -2,6 +2,7 @@
 
 open System
 open System.Collections.Generic
+open Microsoft.FSharp.Collections
 open NUnit.Framework
 open FsUnit
 open cryptopals
@@ -156,4 +157,56 @@ let challenge12 () =
     printfn $"Single decrypted padding byte: 0x{secret |> Seq.tail |> Hex.byteToHex}"
 
 
+module String =
+    let split (key: string) (x: string) = x.Split(key) |> seq
+    let split2 (key: string) (x: string): (string * string) =
+        let result = x.Split(key, 2)
+        match result with
+            | [| a |] -> (a, "")
+            | [| a; b |] -> (a, b)
+            | _ -> failwith "todo"
+            
+    let replace (f: string) (t: string) (s: string) = s.Replace(f, t)
+    
+
+let parsekv = String.split "&" >> Seq.map (String.split2 "=") >> Map
+
+let urlencode = String.replace "%" "%25" >> String.replace "&" "%26" >> String.replace "=" "%3D" 
+
+let profile_for email = $"email={email |> urlencode}&uid=10&role=user"
+
+let challenge13key = randomBytes 16 |> Seq.map int
+
+let encryptedprofile email =
+    email |> profile_for |> Ascii.charToByte |> Aes.encryptEcbPkcs7 challenge13key
+
+let getrole enc =
+    let dec = enc |> Aes.decryptEcbPkcs7 challenge13key
+    let disp: string = dec |> Seq.map char |> String.Concat
+    printfn $"{disp}"          
+    dec |> (Ascii.byteToChars >> parsekv >> Map.find "role")
+
+[<Test>]
+let challenge13 () =
+    "foo=bar&baz=qux&zap=zazzle" |> parsekv |> should equal (Map [("foo", "bar"); ("baz", "qux"); ("zap", "zazzle")])
+    profile_for "foo@bar.com" |> should equal "email=foo@bar.com&uid=10&role=user"
+    
+    encryptedprofile "foo@bar.com" |> getrole |> should equal "user"
+    
+    // email=foo@bar.co m&uid=10&role=us er\xe
+    // email=whatever@a admin&uid=10&rol e=user.......... etc
+    //                  ^^^^^^^^^^^^^^^^
+    // then build a new one with
+    // email=foo12@bar. com&uid=10&role= user\xc\xc\xc\xc etc
+    //                                   ^^^^^^^^^^^^^^^^ etc
+    // and we can create
+    // email=foo12@bar. com&uid=10&role= admin&uid=10&rol user\xc\xc\xc\xc
+    //                                   ^^^^^^^^^^^^^^^^ ^^^^^^^^^^^^^^^^ (padding is still correct)
+    
+    let encrypted1 = "whatever@aadmin" |> encryptedprofile |> Seq.splitBlocks 16 |> Seq.toList
+    let encrypted2 = "foo12@bar.com" |> encryptedprofile |> Seq.splitBlocks 16 |> Seq.toList
+    
+    let modified = Seq.concat [ encrypted2[0]; encrypted2[1]; encrypted1[1]; encrypted2[2] ]
+    
+    getrole modified |> should equal "admin"
     
