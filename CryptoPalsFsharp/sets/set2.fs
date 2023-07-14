@@ -209,4 +209,71 @@ let challenge13 () =
     let modified = Seq.concat [ encrypted2[0]; encrypted2[1]; encrypted1[1]; encrypted2[2] ]
     
     getrole modified |> should equal "admin"
+
+
+let challenge14target_template key prefix content =
+    let secret_contents = "Um9sbGluJyBpbiBteSA1LjAKV2l0aCBteSByYWctdG9wIGRvd24gc28gbXkgaGFpciBjYW4gYmxvdwpUaGUgZ2lybGllcyBvbiBzdGFuZGJ5IHdhdmluZyBqdXN0IHRvIHNheSBoaQpEaWQgeW91IHN0b3A/IE5vLCBJIGp1c3QgZHJvdmUgYnkK" |> Base64.base64ToByte
+    let to_encrypt = Seq.concat [prefix; content; secret_contents]
+    //to_encrypt |> Hex.byteToHex |> printfn "%s"
+    Aes.encryptEcbPkcs7 (key |> Seq.map int) to_encrypt
+
+[<Test>]
+let challenge14 () =
+    let _key = randomBytes 16
+    let _prefix_length = randomInt 10 100
+    let _prefix = randomBytes _prefix_length
+    let challenge14target = challenge14target_template _key _prefix
     
+    let mycontent = Seq.replicate (16*16) (int 'A')
+    let encoded_firstattempt = challenge14target mycontent
+    
+    // we first need to figure out how much padding we need
+    // to do so, we iteratively add 0, 1, ... 15 bytes until we find that we get something where
+    // len(prefix) + len(pad) > 16 bytes, and thus the first *two* (or three, ....) blocks are
+    // no longer recognisable
+    // [RANDOMPREFIX][PAD]
+    
+    let first_block_mycontent = encoded_firstattempt |> Seq.chunkBySize 16 |> Seq.pairwise |> Seq.indexed |> Seq.filter (fun (i, (prev, next)) -> (prev = next)) |> Seq.head |> fst
+    
+    // we take the number of blocks here as guidance, and add random bytes until we find a padding where we hit a one-larger block
+    // (although this fails if the prefix only takes an even number of bytes)
+    
+    let _secret_length_blocks_roundedup = int (ceil ((_prefix_length |> float) / 16.0)) 
+    first_block_mycontent |> should equal _secret_length_blocks_roundedup
+    
+    printfn $"First attack block has index {first_block_mycontent}"
+    
+    // ok, so we know that the length of the random bytes block is (first_block_mycontent-2)*16 .. (first_block_mycontent-1)*16
+    // either way, we should add padding until we find 16 repeated blocks that resemble the encrypted version of 'A'*16
+    
+    let AAAA_enc = encoded_firstattempt |> Seq.chunkBySize 16 |> Seq.item first_block_mycontent
+    
+    let test_blocks padding =
+        let padding_bytes = Seq.replicate padding 1
+        let encoded = challenge14target (Seq.append padding_bytes mycontent)
+        let num_AAAA_blocks = encoded |> Seq.chunkBySize 16 |> Seq.filter ((=) AAAA_enc) |> Seq.length
+        num_AAAA_blocks = 16
+    
+    let padding_length = seq { 1 .. 1 .. 16 } |> Seq.find test_blocks
+    printfn $"Padding length is {padding_length}"
+    
+    padding_length |> should equal (16 - ((_prefix |> Seq.length) % 16))
+    
+    // we can now use the same method as challenge 12, but with everything shifted a few blocks.
+    // For completeness, (re)calculate the prefix including the padding_length
+    
+    let padding_bytes = Seq.replicate padding_length 1
+    let encoded_second = challenge14target (Seq.append padding_bytes mycontent)
+    let prefix_and_padding_blocks = encoded_second |> Seq.chunkBySize 16 |> Seq.findIndex ((=) AAAA_enc)
+    
+    prefix_and_padding_blocks |> should equal (int ((_prefix_length |> float) / 16.0) + 1)
+    
+    // Now we make a "modified encryptor" that simply adds the correct padding and cuts off the prefix in the
+    // output. We can then use the same cracking logic as challenge 12 (ecbCrackChar)
+    let modified_encryptor content =
+        Seq.append padding_bytes content |> challenge14target |> Seq.skip (prefix_and_padding_blocks * 16)
+    
+    let secret = Seq.unfold (ecbCrackChar modified_encryptor 16) Seq.empty
+
+    printfn $"Decrypted secret:\n {secret |> Ascii.byteToChars}"
+    printfn $"Single decrypted padding byte: 0x{secret |> Seq.last 1 |> Hex.byteToHex}"
