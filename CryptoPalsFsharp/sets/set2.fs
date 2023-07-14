@@ -277,3 +277,11 @@ let challenge14 () =
 
     printfn $"Decrypted secret:\n {secret |> Ascii.byteToChars}"
     printfn $"Single decrypted padding byte: 0x{secret |> Seq.last 1 |> Hex.byteToHex}"
+    
+[<Test>]
+let challenge15 () =
+    let unpad = Seq.map int >> Padding.strip_padding >> Option.map Ascii.byteToChars
+    "ICE ICE BABY\x04\x04\x04\x04" |> unpad |> should equal (Some "ICE ICE BABY")
+    "ICE ICE BABY\x05\x05\x05\x05" |> unpad |> should equal None
+    "ICE ICE BABY\x05\x05\x05\x05" |> unpad |> should equal None
+     
