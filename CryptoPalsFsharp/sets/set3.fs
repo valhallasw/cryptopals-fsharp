@@ -214,7 +214,10 @@ let challenge19 () =
     let decrypted = ciphertexts |> Seq.transpose |> Seq.map set1.crackXor
     let keybytes = decrypted |> Seq.map (fun (_, k, _) -> k)
     
-    ciphertexts |> Seq.map (Seq.pairxor keybytes >> Ascii.byteToChars) |> Seq.last 1 |> Seq.head |> should equal "a terrible beauty is born. "
+    // Note: the decryption method is not case-sensitive as A^a=0x20, B^b=0x20, etc
+    // so for any byte, the corresponding ^0x20 value is a key byte that decodes 'as well'
+    // which one is found first depends on the key & nonce used.
+    ciphertexts |> Seq.map (Seq.pairxor keybytes >> Ascii.byteToChars) |> Seq.last 1 |> Seq.head |> String.lower |> should equal "a terrible beauty is born. "
     
 [<Test>]
 let challenge20 () =
@@ -226,7 +229,7 @@ let challenge20 () =
     let decrypted = ciphertexts |> Seq.transpose |> Seq.map set1.crackXor
     let keybytes = decrypted |> Seq.map (fun (_, k, _) -> k)
     
-    ciphertexts |> Seq.map (Seq.pairxor keybytes >> Ascii.byteToChars) |> Seq.last 1 |> Seq.head |> should equal "and we outta here / Yo, what happened to peace? / Peace?"
+    ciphertexts |> Seq.map (Seq.pairxor keybytes >> Ascii.byteToChars) |> Seq.last 1 |> Seq.head |> String.lower |> should equal "and we outta here / yo, what happened to peace? / peace?"
 
 
 [<Test>]
