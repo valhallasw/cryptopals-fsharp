@@ -405,4 +405,43 @@ let challenge23 () =
     let newGenerator = Random.mt19937 (Random.mtInit.State (regeneratedState, stateSize))
     
     newGenerator |> Seq.take 10 |> should equal tenAfter
+
+let mtcipher seed =
+    Random.mt19937 (Random.mtInit.Seed seed) |> Seq.collect (fun x ->
+        seq {0 .. 8 .. 24 } |> Seq.map (fun shift -> int ((x >>> shift) % 256u)))
+
+let mtcipher_enc seed value = Seq.pairxor value (mtcipher seed)
+let mtcipher_dec = mtcipher_enc
+
+[<Test>]
+let challenge24_play () =
+    let seed = uint (Random.randomInt 0 65535)
+    let enc = "Hello world" |> Ascii.charToByte |> mtcipher_enc seed
+
+    enc |> Seq.length |> should equal 11
+              
+    let dec = enc |> mtcipher_dec seed |> Ascii.byteToChars
+    dec |> should equal "Hello world"
+
+[<Test>]
+let challenge24 () =
+    let seed = uint (Random.randomInt 0 65535)
+    let plaintext = "AAAAAAAAAAAAAA" |> Ascii.charToByte
     
+    let postfix = "My secret content" |> Ascii.charToByte
+    let prefix = Random.randomBytes (Random.randomInt 5 10)
+    let enc = Seq.concat [prefix; plaintext; postfix] |> mtcipher_enc seed
+    
+    // to attack, try all 65535 valid seeds using a string with just As
+    // and see when we get sufficient overlap
+    let overlapFactor a b = Seq.zip a b |> Seq.where ((<||) (=)) |> Seq.length
+    
+    let manyAs = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA" |> Ascii.charToByte
+    
+    let found_seed = {0u .. 1u .. 65535u} |> Seq.maxBy (fun seed -> mtcipher_enc seed manyAs |> overlapFactor enc)
+    
+    printfn "Found text: %s" (enc |> mtcipher_dec found_seed |> Ascii.byteToChars) 
+    
+    found_seed |> should equal seed
+
+    // the second part is just challenge 22 again?
