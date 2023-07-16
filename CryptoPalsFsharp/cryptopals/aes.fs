@@ -1,4 +1,5 @@
 ﻿namespace cryptopals
+open System
 open System.IO
 open System.Security.Cryptography
 
@@ -74,13 +75,19 @@ module Aes =
     // Assumes content is split up in block size chunks
     let private decryptCbcInt (key: seq<int>) (iv: seq<int>) (content: seq<seq<int>>) =
         content |> Seq.mapFold (decryptCbcBlock key) iv |> fst
-        
-    // need to handle cropping off the padding
-    let decryptCbcPkcs7 (key: seq<int>) (iv: seq<int>) (content: seq<int>) =
-        let blocksize = (key |> Seq.length)
-        let decrypted = decryptCbcInt key iv (content |> Seq.splitBlocks blocksize) |> Seq.concat |> Seq.toList
-        let padding = decrypted[decrypted.Length - 1]
-        decrypted[0..decrypted.Length-padding-1]
 
-//let encryptCbcPkcs7 key content =
+    let decryptCbc (key: seq<int>) (iv: seq<int>) (content: seq<int>) =
+        let blocksize = (key |> Seq.length)
+        decryptCbcInt key iv (content |> Seq.splitBlocks blocksize) |> Seq.concat 
     
+    let decryptCbcPkcs7 (key: seq<int>) (iv: seq<int>) (content: seq<int>) =
+        decryptCbc key iv content |> Padding.strip_padding
+    
+    let genCtr = Seq.initInfinite id |> Seq.map (int64 >> BitConverter.GetBytes >> Seq.map int)
+    let genCtrStream (enc: (seq<int> -> seq<int>)) nonce =
+        genCtr |> Seq.map (Seq.append nonce) |> Seq.map enc |> Seq.concat
+    let genAesCtrStream key = genCtrStream (encryptBlock key)
+    
+    let encryptCtrOffset offset key nonce content = Seq.pairxor (genAesCtrStream key nonce |> Seq.skip offset) content
+    let encryptCtr: seq<int> -> seq<int> -> seq<int> -> seq<int> = encryptCtrOffset 0
+    let decryptCtr = encryptCtr

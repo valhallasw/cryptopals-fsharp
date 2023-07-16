@@ -9,12 +9,16 @@ let pad_pkcs7 blocksize input =
 let strip_padding input =
     let length = input |> Seq.length
     let lastbyte = input |> Seq.last
-    let content_len = (length - lastbyte)
-    
-    let content = input |> Seq.take content_len
-    let padding = input |> Seq.skip content_len
 
-    if (padding |> Seq.filter ((=) lastbyte) |> Seq.length |> (=) lastbyte) then
-        Some content
-    else
+    if lastbyte > length || lastbyte = 0 then
         None
+    else
+        let content_len = (length - lastbyte)
+        
+        let content = input |> Seq.take content_len
+        let padding = input |> Seq.skip content_len
+
+        if (padding |> Seq.filter ((=) lastbyte) |> Seq.length |> (=) lastbyte) then
+            Some content
+        else
+            None

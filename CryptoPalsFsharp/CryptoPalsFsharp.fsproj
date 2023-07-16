@@ -19,8 +19,12 @@
         <Compile Include="cryptopals\file.fs" />
         <Compile Include="cryptopals\padding.fs" />
         <Compile Include="cryptopals\aes.fs" />
+        <Compile Include="cryptopals\random.fs" />
+        <Compile Include="cryptopals\string.fs" />
+        <Compile Include="cryptopals\utils.fs" />
         <Compile Include="sets\set1.fs" />
         <Compile Include="sets\set2.fs" />
+        <Compile Include="sets\set3.fs" />
         <Compile Include="tests\base64fixture.fs" />
         <Compile Include="tests\hexfixture.fs" />
         <Compile Include="tests\asciifixture.fs" />

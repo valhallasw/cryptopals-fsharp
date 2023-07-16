@@ -37,7 +37,7 @@ let testEncryptDecryptCBC () =
     let encrypted = Aes.encryptCbcPkcs7 key iv input
     printfn $"{encrypted |> Hex.byteToHex}"
     
-    let decrypted = Aes.decryptCbcPkcs7 key iv encrypted
+    let decrypted = Aes.decryptCbcPkcs7 key iv encrypted |> Option.get
     printfn $"{decrypted |> Hex.byteToHex}"
     printfn $"{decrypted |> Ascii.byteToChars}"
     
@@ -49,24 +49,18 @@ let challenge10 () =
     let key = "YELLOW SUBMARINE" |> Ascii.charToByte
     let iv = Seq.replicate 16 0
     
-    Aes.decryptCbcPkcs7 key iv input |> Seq.take 32 |> Ascii.byteToChars |> should equal "I'm back and I'm ringin' the bel"
-
-let randomInt min max = int (Random.Shared.NextInt64((int64) min, (int64) max))
-let randomBytes size =
-    let array = Array.create size (byte 0)
-    Random.Shared.NextBytes array
-    array |> Seq.map int
+    Aes.decryptCbcPkcs7 key iv input |> Option.get |> Seq.take 32 |> Ascii.byteToChars |> should equal "I'm back and I'm ringin' the bel"
 
 let randomEncryption input =
-    let key = randomBytes 16
-    let iv = randomBytes 16
+    let key = Random.randomBytes 16
+    let iv = Random.randomBytes 16
     
-    let prepend_bytes = randomBytes (randomInt 5 10)
-    let append_bytes = randomBytes (randomInt 5 10)
+    let prepend_bytes = Random.randomBytes (Random.randomInt 5 10)
+    let append_bytes = Random.randomBytes (Random.randomInt 5 10)
     
     let content = Seq.concat [prepend_bytes |> Seq.map int; input; append_bytes |> Seq.map int]
     
-    if (randomInt 0 2) = 1 then
+    if (Random.randomInt 0 2) = 1 then
         printf "CBC -> "
         Aes.encryptCbcPkcs7 key iv content
     else
@@ -91,7 +85,7 @@ let challenge12target_template key content =
 
     Aes.encryptEcbPkcs7 (key |> Seq.map int) (Seq.append content secret_contents)
 
-let challenge12target: seq<int> -> seq<int> = challenge12target_template (randomBytes 16)
+let challenge12target: seq<int> -> seq<int> = challenge12target_template (Random.randomBytes 16)
 
 let ecbCrackChar fn bs knownsecret =
     let A = 'A' |> Ascii.charToVal
@@ -171,11 +165,11 @@ module String =
 
 let parsekv = String.split "&" >> Seq.map (String.split2 "=") >> Map
 
-let urlencode = String.replace "%" "%25" >> String.replace "&" "%26" >> String.replace "=" "%3D" 
+let urlencode = String.replace "%" "%25" >> String.replace "&" "%26" >> String.replace "=" "%3D" >> String.replace ";" "%3B"
 
 let profile_for email = $"email={email |> urlencode}&uid=10&role=user"
 
-let challenge13key = randomBytes 16 |> Seq.map int
+let challenge13key = Random.randomBytes 16 |> Seq.map int
 
 let encryptedprofile email =
     email |> profile_for |> Ascii.charToByte |> Aes.encryptEcbPkcs7 challenge13key
@@ -219,9 +213,9 @@ let challenge14target_template key prefix content =
 
 [<Test>]
 let challenge14 () =
-    let _key = randomBytes 16
-    let _prefix_length = randomInt 10 100
-    let _prefix = randomBytes _prefix_length
+    let _key = Random.randomBytes 16
+    let _prefix_length = Random.randomInt 10 100
+    let _prefix = Random.randomBytes _prefix_length
     let challenge14target = challenge14target_template _key _prefix
     
     let mycontent = Seq.replicate (16*16) (int 'A')
@@ -285,3 +279,50 @@ let challenge15 () =
     "ICE ICE BABY\x05\x05\x05\x05" |> unpad |> should equal None
     "ICE ICE BABY\x05\x05\x05\x05" |> unpad |> should equal None
      
+     
+let challenge16enc_template key contents =
+    let iv = Random.randomBytes 16
+    let dec = ["comment1=cooking%20MCs;userdata="; contents |> urlencode; ";comment2=%20like%20a%20pound%20of%20bacon"] |> String.concat ""
+    
+    (iv, Aes.encryptCbcPkcs7 key iv (dec |> Ascii.charToByte)) 
+
+let challenge16oracle_template key (iv, enc) =
+    let decrypted = enc |> Aes.decryptCbcPkcs7 key iv
+    
+    decrypted |> Option.map Ascii.byteToChars |> Option.defaultValue "[padding invalid]" |> printfn "%s"
+    
+    decrypted |>
+        Option.map (Ascii.byteToChars >> fun f -> f.Contains(";admin=true;")) |>
+        Option.defaultValue false
+
+[<Test>]
+let challenge16 () =
+    let _key = Random.randomBytes 16
+    let enc = challenge16enc_template _key
+    let oracle = challenge16oracle_template _key
+    
+    // add contents until we get a new block; in this case, we know the last block will be 16 \x10 bytes
+    // we can then XOR this with the block we do want (including the padding to make it valid)
+    
+    let baselength = enc "" |> snd |> Seq.length
+    let paddingAddsBytes x = Seq.replicate x "A" |> String.concat "" |> enc |> snd |> Seq.length |> ((<) baselength)
+    
+    let required_content_length = seq {1 .. 1 .. 16} |> Seq.find paddingAddsBytes
+    
+    let (iv, encdata) = Seq.replicate required_content_length "A" |> String.concat "" |> enc
+    
+    let newFinalBlock = ";admin=true;\x04\x04\x04\x04" |> Seq.map int
+    let oldFinalBlock = Seq.replicate 16 16
+    let xorBlock = Seq.pairxor oldFinalBlock newFinalBlock
+
+    let encBlocks = encdata |> Seq.chunkBySize 16
+    let mutatedBlockIndex = (encBlocks |> Seq.length) - 2
+    
+    let newEncData = Seq.concat [
+        encBlocks |> Seq.take mutatedBlockIndex |> Seq.concat;
+        encBlocks |> Seq.item mutatedBlockIndex |> Seq.pairxor xorBlock;
+        encBlocks |> Seq.skip (mutatedBlockIndex + 1) |> Seq.concat
+    ]
+    
+    (iv, newEncData) |> oracle |> should equal true
+

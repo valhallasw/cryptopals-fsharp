@@ -1,13 +1,17 @@
 module Bits
 
-let rec private binarizer max n =
-    if max = 0 then []
-    elif n >= max then ([ 1 ] @ (binarizer (max / 2) (n - max)))
-    else ([ 0 ] @ (binarizer (max / 2) (n)))
+open System
 
-let binarize8 = binarizer 128
-let binarize6 = binarizer 32
+let rec private binarizer (max: uint) (n: uint) =
+    if max = 0u then []
+    elif n >= max then ([ 1 ] @ (binarizer (max / 2u) (n - max)))
+    else ([ 0 ] @ (binarizer (max / 2u) (n)))
 
-let unbinarize: seq<int> -> int = Seq.fold (fun c v -> 2 * c + v) 0 //or... ((*) 2 >> (+)) 0
+let binarize8 = binarizer 128u
+let binarize6 = binarizer 32u
 
-let bytesToBits: seq<int> -> seq<int> = Seq.collect binarize8
+let binarize32 = binarizer (UInt32.MaxValue / 2u + 1u)
+
+let unbinarize: seq<int> -> uint = Seq.fold (fun c v -> 2u * c + (uint v)) 0u //or... ((*) 2 >> (+)) 0
+
+let bytesToBits: seq<int> -> seq<int> = Seq.map uint >> Seq.collect binarize8 
