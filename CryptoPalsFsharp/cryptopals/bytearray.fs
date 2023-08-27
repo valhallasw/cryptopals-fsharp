@@ -36,12 +36,14 @@ module Seq =
 
     let any f = countf f >> (<>) 0
     let all f = any (f >> not) >> not
-
-    let allEqual a b = Seq.zip a b |> all ((<||) (=))
+    
+    let allEqual a b =
+        ((Seq.length a) = (Seq.length b)) &&
+        Seq.zip a b |> all ((<||) (=))
 
     let toBigintBe (x: seq<int>): bigint =
         let arr = x |> Seq.map byte |> Seq.toArray
-        BigInteger(arr, true, true)
+        BigInteger(arr, true, true) 
         
     let fromBigintBe (x: bigint): seq<int> =
         x.ToByteArray(true, true) |> Seq.map int

@@ -30,6 +30,7 @@
         <Compile Include="sets\set3.fs" />
         <Compile Include="sets\set4.fs" />
         <Compile Include="sets\set5.fs" />
+        <Compile Include="sets\set6\ch41.fs" />
         <Compile Include="tests\base64fixture.fs" />
         <Compile Include="tests\hexfixture.fs" />
         <Compile Include="tests\asciifixture.fs" />
