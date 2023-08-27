@@ -34,14 +34,14 @@ let crackXorOptions keys bytes =
 
 [<Test>]
 let testCountPrintable () =
-    Ascii.countprintable "abcd\x00\x01\x02" |> should equal 4 
+    Ascii.counttextchar "abcd\x00\x01\x02" |> should equal 4 
 
 let crackXor bytes =
     let keys = [0x00..0xff] |> List.map int
     
     let keyIndex, score =
        crackXorOptions keys bytes |>
-       Seq.map Ascii.countprintable |>
+       Seq.map Ascii.counttextchar |>
        Seq.indexed |>
        Seq.maxBy snd
 
@@ -60,7 +60,7 @@ let challenge3 () = // Single-byte XOR cipher
 let challenge4 () = // Detect single-character XOR
     let lines = File.readChallengeData "4.txt" |> List.map Hex.hexToByte 
         
-    let score x = List.ofSeq x |> List.map (fun c -> if Ascii.isprintable c then 1 else 0) |> List.sum     
+    let score x = List.ofSeq x |> List.map (fun c -> if Ascii.istextchar c then 1 else 0) |> List.sum     
     
     let keys = [0x00..0xff] |> List.map int
     
@@ -131,7 +131,7 @@ let crackXorWithSize keySize bytes =
     let grouped = grouper keySize bytes
     let cracked_key = grouped |> Seq.map (Seq.toList >> crackXor >> (fun (_, k, _) -> k)) |> Seq.toList
     let decoded = xorRepeating cracked_key bytes |> Ascii.byteToChars
-    (Ascii.countprintable decoded, cracked_key, decoded)
+    (Ascii.counttextchar decoded, cracked_key, decoded)
 
 [<Test>]
 let challenge6 () = // Break repeating-key XOR

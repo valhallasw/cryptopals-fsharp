@@ -150,24 +150,9 @@ let challenge12 () =
     printfn $"Decrypted secret:\n {secret |> Ascii.byteToChars}"
     printfn $"Single decrypted padding byte: 0x{secret |> Seq.tail |> Hex.byteToHex}"
 
-
-module String =
-    let split (key: string) (x: string) = x.Split(key) |> seq
-    let split2 (key: string) (x: string): (string * string) =
-        let result = x.Split(key, 2)
-        match result with
-            | [| a |] -> (a, "")
-            | [| a; b |] -> (a, b)
-            | _ -> failwith "todo"
-            
-    let replace (f: string) (t: string) (s: string) = s.Replace(f, t)
-    
-
 let parsekv = String.split "&" >> Seq.map (String.split2 "=") >> Map
 
-let urlencode = String.replace "%" "%25" >> String.replace "&" "%26" >> String.replace "=" "%3D" >> String.replace ";" "%3B"
-
-let profile_for email = $"email={email |> urlencode}&uid=10&role=user"
+let profile_for email = $"email={email |> String.urlencode}&uid=10&role=user"
 
 let challenge13key = Random.randomBytes 16 |> Seq.map int
 
@@ -183,7 +168,7 @@ let getrole enc =
 [<Test>]
 let challenge13 () =
     "foo=bar&baz=qux&zap=zazzle" |> parsekv |> should equal (Map [("foo", "bar"); ("baz", "qux"); ("zap", "zazzle")])
-    profile_for "foo@bar.com" |> should equal "email=foo@bar.com&uid=10&role=user"
+    profile_for "foo@bar.com" |> should equal "email=foo%40bar.com&uid=10&role=user"
     
     encryptedprofile "foo@bar.com" |> getrole |> should equal "user"
     
@@ -282,7 +267,7 @@ let challenge15 () =
      
 let challenge16enc_template key contents =
     let iv = Random.randomBytes 16
-    let dec = ["comment1=cooking%20MCs;userdata="; contents |> urlencode; ";comment2=%20like%20a%20pound%20of%20bacon"] |> String.concat ""
+    let dec = ["comment1=cooking%20MCs;userdata="; contents |> String.urlencode; ";comment2=%20like%20a%20pound%20of%20bacon"] |> String.concat ""
     
     (iv, Aes.encryptCbcPkcs7 key iv (dec |> Ascii.charToByte)) 
 

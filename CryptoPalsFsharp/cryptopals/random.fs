@@ -1,6 +1,8 @@
 ﻿module Random
 
 open System
+open System.Numerics
+open cryptopals
 
 let randomInt min max = int (System.Random.Shared.NextInt64((int64) min, (int64) max))
 let randomUintFullRange = uint32 (Random.Shared.NextInt64(0, int64 UInt32.MaxValue))
@@ -8,6 +10,9 @@ let randomBytes size =
     let array = Array.create size (byte 0)
     System.Random.Shared.NextBytes array
     array |> Seq.map int
+
+let randomBigInt bits = randomBytes (bits / 8 + 1) |> Seq.toBigintBe
+
     
 let choose sequence =
     Seq.item (randomInt 0 (Seq.length sequence)) sequence
