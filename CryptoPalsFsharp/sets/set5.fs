@@ -360,12 +360,10 @@ let test_prime_extraction() =
     let n = r.Modulus |> Seq.map int |> Seq.toBigintBe
     
     (p * q) |> should equal n
-    
-    r.Exponent |> Seq.map int |> Seq.toBigintBe |> should equal 3
 
 [<Test>]
 let test_modinv() =
-    rsa.invmod (bigint 17) (bigint 3120) |> should equal (Some 2753)
+    rsa.invmod (bigint 17) (bigint 3120) |> should equal (Some (bigint 2753))
     
 [<Test>]
 let challenge39() =

@@ -172,18 +172,18 @@ let challenge13 () =
     
     encryptedprofile "foo@bar.com" |> getrole |> should equal "user"
     
-    // email=foo@bar.co m&uid=10&role=us er\xe
-    // email=whatever@a admin&uid=10&rol e=user.......... etc
+    // email=foo%40bar. comm&uid=10&role =user\xe
+    // email=whateve%40 admin&uid=10&rol e=user.......... etc
     //                  ^^^^^^^^^^^^^^^^
     // then build a new one with
-    // email=foo12@bar. com&uid=10&role= user\xc\xc\xc\xc etc
+    // email=foo%40bar. com&uid=10&role= user\xc\xc\xc\xc etc
     //                                   ^^^^^^^^^^^^^^^^ etc
     // and we can create
     // email=foo12@bar. com&uid=10&role= admin&uid=10&rol user\xc\xc\xc\xc
     //                                   ^^^^^^^^^^^^^^^^ ^^^^^^^^^^^^^^^^ (padding is still correct)
     
-    let encrypted1 = "whatever@aadmin" |> encryptedprofile |> Seq.splitBlocks 16 |> Seq.toList
-    let encrypted2 = "foo12@bar.com" |> encryptedprofile |> Seq.splitBlocks 16 |> Seq.toList
+    let encrypted1 = "whateve@admin" |> encryptedprofile |> Seq.splitBlocks 16 |> Seq.toList
+    let encrypted2 = "foo@bar.com" |> encryptedprofile |> Seq.splitBlocks 16 |> Seq.toList
     
     let modified = Seq.concat [ encrypted2[0]; encrypted2[1]; encrypted1[1]; encrypted2[2] ]
     
